@@ -4,10 +4,6 @@
       "title": "Hozza létre első vállalatát",
       "description": "Kezdje egy vállalat létrehozásával.",
       "newCompany": "Új vállalat"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }

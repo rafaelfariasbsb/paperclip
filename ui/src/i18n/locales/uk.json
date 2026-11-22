@@ -4,10 +4,6 @@
       "title": "Створіть свою першу компанію",
       "description": "Почніть зі створення компанії.",
       "newCompany": "Нова компанія"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }

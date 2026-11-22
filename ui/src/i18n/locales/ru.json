@@ -4,10 +4,6 @@
       "title": "Создайте свою первую компанию",
       "description": "Начните с создания компании.",
       "newCompany": "Новая компания"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }

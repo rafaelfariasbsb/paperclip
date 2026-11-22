@@ -4,10 +4,6 @@
       "title": "Buat perusahaan pertama Anda",
       "description": "Mulai dengan membuat perusahaan.",
       "newCompany": "Perusahaan Baru"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }

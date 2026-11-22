@@ -6,8 +6,7 @@
       "newCompany": "New Organization"
     },
     "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
+      "description": "Change the interface language. Some areas may still appear in English."
     }
   }
 }

@@ -4,10 +4,6 @@
       "title": "ਆਪਣੀ ਪਹਿਲੀ ਕੰਪਨੀ ਬਣਾਓ",
       "description": "ਕੰਪਨੀ ਬਣਾਕੇ ਸ਼ੁਰੂ ਕਰੋ।",
       "newCompany": "ਨਵੀਂ ਕੰਪਨੀ"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }

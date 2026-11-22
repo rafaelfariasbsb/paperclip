@@ -6,8 +6,7 @@
       "newCompany": "Nova empresa"
     },
     "language": {
-      "switchTo": "Mudar o idioma para {{language}}",
-      "description": "Muda o idioma da interface."
+      "description": "Altera o idioma da interface. Algumas partes ainda podem aparecer em inglês."
     }
   }
 }

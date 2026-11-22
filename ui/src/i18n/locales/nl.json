@@ -4,10 +4,6 @@
       "title": "Maak uw eerste bedrijf aan",
       "description": "Begin door een bedrijf aan te maken.",
       "newCompany": "Nieuw bedrijf"
-    },
-    "language": {
-      "switchTo": "Switch language to {{language}}",
-      "description": "Change the interface language."
     }
   }
 }
