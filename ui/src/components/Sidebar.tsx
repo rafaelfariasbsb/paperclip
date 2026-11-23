@@ -52,6 +52,7 @@ import { PluginSlotOutlet } from "@/plugins/slots";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 import { primarySidebarStyles } from "./primary-sidebar-styles";
+import { useTranslation } from "@/i18n";
 
 export function Sidebar({ children }: { children?: ReactNode }) {
   const { enabled } = useCoordinatorWorkspaceEnabled();
@@ -59,6 +60,7 @@ export function Sidebar({ children }: { children?: ReactNode }) {
 }
 
 function ClassicSidebar({ children }: { children?: ReactNode }) {
+  const { t } = useTranslation();
   const { openNewIssue } = useDialogActions();
   const { enabled: agentChatEnabled } = useAgentChatEnabled();
   const chatNavigation = useAgentChatNavigation();
@@ -125,35 +127,35 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
   // Work. Hidden until the flag is known (no-flash, same as above).
   const { enabled: responsibilitiesHome } = useResponsibilitiesEnabled();
 
-  const chatItem = <SidebarNavItem to="/chats" label="Chat" icon={MessageCircle} badge={unreadChatCount} badgeLabel="unread chats" />;
+  const chatItem = <SidebarNavItem to="/chats" label={t("sidebar.nav.chat")} icon={MessageCircle} badge={unreadChatCount} badgeLabel={t("sidebar.badge.unreadChats")} />;
   // Combined Inbox + Task List: Inbox is a view inside Tasks, so the
   // unread/failed-run badge rides on Tasks.
   const tasksItem = combinedInboxTasks ? (
     <SidebarNavItem
       to="/issues"
-      label="Tasks"
+      label={t("sidebar.nav.tasks")}
       icon={CircleCheck}
       badge={inboxBadge.inbox}
-      badgeLabel="unread"
+      badgeLabel={t("sidebar.badge.unread")}
       badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
       alert={inboxBadge.failedRuns > 0}
     />
   ) : (
-    <SidebarNavItem to="/issues" label="Tasks" icon={CircleCheck} />
+    <SidebarNavItem to="/issues" label={t("sidebar.nav.tasks")} icon={CircleCheck} />
   );
   const inboxItem = !combinedInboxTasks ? (
     <SidebarNavItem
       to="/inbox"
-      label="Inbox"
+      label={t("sidebar.nav.inbox")}
       icon={Inbox}
       badge={inboxBadge.inbox}
-      badgeLabel="unread"
+      badgeLabel={t("sidebar.badge.unread")}
       badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
       alert={inboxBadge.failedRuns > 0}
     />
   ) : null;
   // The classic dashboard. With Responsibilities as home that page takes the "Dashboard" name and this row is not shown.
-  const dashboardItem = <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />;
+  const dashboardItem = <SidebarNavItem to="/dashboard" label={t("sidebar.nav.dashboard")} icon={LayoutDashboard} liveCount={liveRunCount} />;
 
   const pluginContext = {
     companyId: selectedCompanyId,
@@ -187,12 +189,12 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
             className="flex items-center gap-2.5 mx-2 rounded-lg px-2 py-1.5 pointer-coarse:py-1 text-(length:--text-compact) font-medium text-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <SquarePen className="h-4 w-4 shrink-0" />
-            <span className="truncate">New Task</span>
+            <span className="truncate">{t("sidebar.newTask")}</span>
           </button>
-          <SidebarNavItem to="/search" label="Search" icon={Search} />
+          <SidebarNavItem to="/search" label={t("sidebar.nav.search")} icon={Search} />
           {responsibilitiesHome ? (
             <>
-              <SidebarNavItem to="/responsibilities" label="Dashboard" icon={Compass} />
+              <SidebarNavItem to="/responsibilities" label={t("sidebar.nav.dashboard")} icon={Compass} />
               {agentChatEnabled ? chatItem : null}
               {tasksItem}
               {inboxItem}
@@ -207,21 +209,21 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
           {showDecisions ? (
             <SidebarNavItem
               to="/decisions"
-              label="Decisions"
+              label={t("sidebar.nav.decisions")}
               icon={ListChecks}
               badge={attentionCount}
-              badgeLabel="decisions"
+              badgeLabel={t("sidebar.badge.decisions")}
             />
           ) : null}
           {showStatusCards ? (
-            <SidebarNavItem to="/status" label="Status" icon={LayoutGrid} textBadge="beta" />
+            <SidebarNavItem to="/status" label={t("sidebar.nav.status")} icon={LayoutGrid} textBadge="beta" />
           ) : null}
           {conferenceRoomChatEnabled ? (
-            <SidebarNavItem to="/board-chat" label="Conference Room" icon={MessagesSquare} />
+            <SidebarNavItem to="/board-chat" label={t("sidebar.nav.conferenceRoom")} icon={MessagesSquare} />
           ) : null}
         </div>
 
-        <SidebarSection label="Work" collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}>
+        <SidebarSection label={t("sidebar.section.work")} collapsible={{ open: workOpen, onOpenChange: setWorkOpen }}>
           {/* Agent Chat: Chat leads the Work group as a single row — the
               agents you talk to live in the Chat surface's own secondary rail
               (ChatContextualSidebar), not in the primary nav. */}
@@ -233,17 +235,17 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
           )}
           {streamlinedUiEnabled ? (
             <>
-              <SidebarNavItem to="/projects" label="Projects" icon={FolderOpen} />
+              <SidebarNavItem to="/projects" label={t("sidebar.nav.projects")} icon={FolderOpen} />
               <SidebarStarredProjects />
             </>
           ) : null}
-          <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
-          <SidebarNavItem to="/artifacts" label="Artifacts" icon={Package} />
+          <SidebarNavItem to="/routines" label={t("sidebar.nav.routines")} icon={Repeat} />
+          <SidebarNavItem to="/artifacts" label={t("sidebar.nav.artifacts")} icon={Package} />
           {showCases ? (
-            <SidebarNavItem to="/cases" label="Cases" icon={Layers} textBadge="beta" />
+            <SidebarNavItem to="/cases" label={t("sidebar.nav.cases")} icon={Layers} textBadge="beta" />
           ) : null}
           {showGoalsLink ? (
-            <SidebarNavItem to="/goals" label="Goals" icon={Target} />
+            <SidebarNavItem to="/goals" label={t("sidebar.nav.goals")} icon={Target} />
           ) : goalsLinkPending ? (
             <div
               data-testid="sidebar-goals-placeholder"
@@ -252,7 +254,7 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
             />
           ) : null}
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem to="/workspaces" label={t("sidebar.nav.workspaces")} icon={GitBranch} />
           ) : null}
           <PluginSlotOutlet
             slotTypes={["sidebar"]}
@@ -271,13 +273,13 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
 
         {streamlinedUiEnabled ? (
           <SidebarSection
-            label="Org"
+            label={t("sidebar.section.org")}
             collapsible={{ open: organizationOpen, onOpenChange: setOrganizationOpen }}
           >
-            <SidebarNavItem to="/agents" label="Agents" icon={Users} />
-            <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
-            <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
-            <SidebarNavItem to="/activity" label="Audit" icon={History} />
+            <SidebarNavItem to="/agents" label={t("sidebar.nav.agents")} icon={Users} />
+            <SidebarNavItem to="/skills" label={t("sidebar.nav.skills")} icon={Boxes} />
+            <SidebarNavItem to="/apps" label={t("sidebar.nav.connectors")} icon={Unplug} />
+            <SidebarNavItem to="/activity" label={t("sidebar.nav.audit")} icon={History} />
           </SidebarSection>
         ) : null}
 
@@ -290,16 +292,16 @@ function ClassicSidebar({ children }: { children?: ReactNode }) {
             <SidebarProjects />
             <SidebarAgents />
             <SidebarSection
-              label="Organization"
+              label={t("sidebar.section.organization")}
               collapsible={{ open: organizationOpen, onOpenChange: setOrganizationOpen }}
             >
-              <SidebarNavItem to="/org" label="Org" icon={Network} />
-              <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
-              <SidebarNavItem to="/timeline" label="Timeline" icon={GanttChartSquare} />
-              <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
-              <SidebarNavItem to="/activity" label="Activity" icon={History} />
-              <SidebarNavItem to="/activity/commentary" label="Commentary" icon={History} />
-              <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+              <SidebarNavItem to="/org" label={t("sidebar.nav.orgChart")} icon={Network} />
+              <SidebarNavItem to="/apps" label={t("sidebar.nav.connectors")} icon={Unplug} />
+              <SidebarNavItem to="/timeline" label={t("sidebar.nav.timeline")} icon={GanttChartSquare} />
+              <SidebarNavItem to="/costs" label={t("sidebar.nav.costs")} icon={DollarSign} />
+              <SidebarNavItem to="/activity" label={t("sidebar.nav.activity")} icon={History} />
+              <SidebarNavItem to="/activity/commentary" label={t("sidebar.nav.commentary")} icon={History} />
+              <SidebarNavItem to="/company/settings" label={t("sidebar.nav.settings")} icon={Settings} />
             </SidebarSection>
           </>
         )}

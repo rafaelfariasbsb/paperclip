@@ -5,5 +5,44 @@
       "description": "Get started by creating an organization.",
       "newCompany": "New Organization"
     }
+  },
+  "sidebar": {
+    "newTask": "New Task",
+    "nav": {
+      "chat": "Chat",
+      "tasks": "Tasks",
+      "inbox": "Inbox",
+      "dashboard": "Dashboard",
+      "search": "Search",
+      "decisions": "Decisions",
+      "status": "Status",
+      "conferenceRoom": "Conference Room",
+      "projects": "Projects",
+      "routines": "Routines",
+      "artifacts": "Artifacts",
+      "cases": "Cases",
+      "goals": "Goals",
+      "workspaces": "Workspaces",
+      "agents": "Agents",
+      "skills": "Skills",
+      "connectors": "Connectors",
+      "audit": "Audit",
+      "timeline": "Timeline",
+      "costs": "Costs",
+      "activity": "Activity",
+      "commentary": "Commentary",
+      "settings": "Settings",
+      "orgChart": "Org"
+    },
+    "section": {
+      "work": "Work",
+      "org": "Org",
+      "organization": "Organization"
+    },
+    "badge": {
+      "unreadChats": "unread chats",
+      "unread": "unread",
+      "decisions": "decisions"
+    }
   }
 }

@@ -5,5 +5,44 @@
       "description": "Comece criando uma empresa.",
       "newCompany": "Nova empresa"
     }
+  },
+  "sidebar": {
+    "newTask": "Nova tarefa",
+    "nav": {
+      "chat": "Chat",
+      "tasks": "Tarefas",
+      "inbox": "Caixa de entrada",
+      "dashboard": "Painel",
+      "search": "Buscar",
+      "decisions": "Decisões",
+      "status": "Status",
+      "conferenceRoom": "Sala de reunião",
+      "projects": "Projetos",
+      "routines": "Rotinas",
+      "artifacts": "Artefatos",
+      "cases": "Casos",
+      "goals": "Metas",
+      "workspaces": "Espaços de trabalho",
+      "agents": "Agentes",
+      "skills": "Habilidades",
+      "connectors": "Conectores",
+      "audit": "Auditoria",
+      "timeline": "Linha do tempo",
+      "costs": "Custos",
+      "activity": "Atividade",
+      "commentary": "Comentários",
+      "settings": "Configurações",
+      "orgChart": "Organograma"
+    },
+    "section": {
+      "work": "Trabalho",
+      "org": "Organização",
+      "organization": "Organização"
+    },
+    "badge": {
+      "unreadChats": "chats não lidos",
+      "unread": "não lidos",
+      "decisions": "decisões"
+    }
   }
 }
