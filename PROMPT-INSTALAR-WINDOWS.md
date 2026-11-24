@@ -79,6 +79,21 @@ Se você consegue ver a tela, avise antes do passo 1: "Vou acompanhar pela sua t
 - que o Paperclip roda escondido, sem janela, e já liga sozinho quando o computador é ligado;
 - que para abrir é só dar dois cliques no ícone "Paperclip" e, para desligar, no "Parar Paperclip".
 
+## 5. Último passo: conectar a assinatura do Claude
+
+Os agentes do Paperclip só trabalham depois que a pessoa conecta a assinatura dela. Quem faz isso é a própria pessoa, com poucos cliques. Você não faz por ela: não clique em "Autorizar", não peça senha e não peça nem leia o código de autorização. Esse código é secreto e dá acesso à conta.
+
+Explique assim, um passo por vez, esperando eu dizer "pronto" antes do próximo. A tela do Paperclip está em inglês, então cite os botões com o nome em inglês e diga o que significam:
+
+1. "No Paperclip que abriu no navegador, procure o quadro **Sign in to Claude** (entrar no Claude) e clique no link dele. Vai abrir uma página da Anthropic, a empresa do Claude. Se pedir, entre com a mesma conta da sua assinatura."
+2. "Nessa página, clique em **Autorizar** (ou **Authorize**). Ela vai mostrar um código. Clique para copiar o código. Não precisa me mandar."
+3. "Volte para a aba do Paperclip, clique no campo **Paste authorization code here** (cole o código aqui) e aperte Ctrl+V. Se não andar sozinho, clique em **Submit code** (enviar código)."
+4. "Quando aparecer **Claude is signed in** (o Claude está conectado), clique em **Connect** (conectar). Pronto: os agentes já podem trabalhar."
+
+Se aparecer **This sign-in expired** ou **Sign-in didn't finish** (o login expirou ou não terminou), peça para clicar em **Retry sign-in** (tentar de novo) e refaça os passos 2 a 4. Se eu não encontrar o quadro **Sign in to Claude**, me peça um print da tela do Paperclip.
+
+Por fim, lembre que todos os agentes vêm **pausados**. Eles só começam a trabalhar quando eu os ativar no Paperclip.
+
 ## Se der erro ou passar de 20 minutos sem resposta
 
 O registro completo fica em `%LOCALAPPDATA%\Paperclip\logs\` (`instalacao.log` e `paperclip.log`; ou em `C:\Paperclip\logs\`). No modo A, leia esses arquivos antes de pedir foto da tela.
