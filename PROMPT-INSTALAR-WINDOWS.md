@@ -1,6 +1,8 @@
 Quero instalar o programa Paperclip neste computador Windows. Não entendo de informática, então faça o máximo possível sozinho e fale comigo em português simples, curto e sem termos técnicos.
 
-O Paperclip vai rodar dentro do **WSL2** (o Linux que roda dentro do Windows), que é o jeito suportado pelo projeto: o manual oficial instala em macOS, Linux ou WSL2. Siga o instalador oficial (`https://paperclip.ing/install.sh`). Não instale o Paperclip direto no Windows.
+O Paperclip vai rodar dentro do **WSL2** (o Linux que roda dentro do Windows), que é o jeito suportado pelo projeto: o manual oficial instala em macOS, Linux ou WSL2. Não instale o Paperclip direto no Windows.
+
+Use exatamente as versões deste roteiro: **Paperclip 2026.1117.0**, **Node 24** e **Claude Code 2.1.291**. O `install.sh` oficial dessa versão ainda instala o Node 22 e usa uma opção que a CLI não aceita, e o Claude Code 2.1.330 ou mais novo quebra o login da assinatura no Paperclip. Por isso os passos abaixo fazem o mesmo que o instalador oficial, com essas correções (registro em https://github.com/rafaelfariasbsb/paperclip/issues/1). Não troque nenhuma versão por uma mais nova.
 
 ## 1. Descubra onde você está
 
@@ -23,14 +25,19 @@ Espere a resposta e comece. Guarde a chave e não a repita em outras mensagens. 
 
 Rode tudo pela ferramenta PowerShell. Cada etapa confere o estado antes de agir, então dá para recomeçar do início depois de um reinício sem estragar nada. Use tempo limite de pelo menos 10 minutos nos comandos longos. Se uma etapa falhar, leia o erro, tente corrigir uma vez e, se não der, vá para a seção 6.
 
-**Como rodar um script no Linux:** os comandos Linux abaixo devem ser enviados assim, para não quebrar as quebras de linha do Windows:
+**Como rodar um script no Linux:** os comandos Linux abaixo devem ser enviados assim:
 
 ```powershell
+$OutputEncoding = New-Object Text.UTF8Encoding $false
 $s = @'
 ...script bash...
 '@
-$s | wsl.exe -d Ubuntu -u <usuario> -- bash -c "tr -d '\r' > /tmp/pc.sh && bash /tmp/pc.sh"
+$s | wsl.exe -d Ubuntu -u <usuario> -- bash -c "sed '1s/^\xEF\xBB\xBF//' | tr -d '\r' > /tmp/pc-<usuario>.sh && bash /tmp/pc-<usuario>.sh"
 ```
+
+Troque `<usuario>` nos três lugares (`root` ou `paperclip`). O `$OutputEncoding` e o `sed` tiram a marca invisível (BOM) que o PowerShell coloca no começo do texto, e o `tr` tira as quebras de linha do Windows. Sem isso a primeira linha (`set -e`) não vale e o script segue mesmo depois de um erro. Cada usuário usa o seu próprio arquivo em `/tmp`, porque o `paperclip` não pode sobrescrever o arquivo do `root`. Só considere uma etapa concluída se a última linha da saída for a palavra esperada (`PREPARADO`, `INSTALADO`).
+
+Não rode comandos Linux com `wsl.exe ... bash -lc '...'` contendo aspas duplas: o PowerShell do Windows as remove e o comando quebra.
 
 ### 3.1 WSL2 e Ubuntu
 
@@ -44,46 +51,66 @@ $s | wsl.exe -d Ubuntu -u <usuario> -- bash -c "tr -d '\r' > /tmp/pc.sh && bash 
      Depois rode `wsl.exe -l -v` de novo. Se ainda não aparecer Ubuntu, ou se a saída falar em reiniciar, diga: "Agora preciso que você **reinicie o computador**. Quando ele voltar, abra o Claude na aba Code de novo e mande a mesma mensagem com o link." Pare aqui.
    - Se falar em **virtualização desligada** (BIOS), explique que é uma configuração do computador que precisa de um técnico e pare.
 2. Confira que o Ubuntu responde como administrador: `wsl.exe -d Ubuntu -u root -- echo ok`. Se pedir para criar usuário ou der erro de distribuição não registrada, rode `ubuntu.exe install --root` e confira de novo.
+3. Se o Ubuntu **já existia** antes desta instalação, rode `wsl.exe -d Ubuntu -u root -- sh -c 'dpkg -l nodejs npm 2>/dev/null | grep ^ii'`. Se aparecer algo, me avise antes de seguir: a etapa 3.2 troca o Node do Ubuntu pelo Node 24, e programas que eu já uso nesse Linux podem ser afetados.
 
 ### 3.2 Preparar o Linux (como root)
 
 ```bash
 set -e
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 id paperclip >/dev/null 2>&1 || useradd -m -s /bin/bash paperclip
 echo 'paperclip ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-paperclip-install
 chmod 440 /etc/sudoers.d/90-paperclip-install
 grep -q '^systemd=true' /etc/wsl.conf 2>/dev/null || printf '\n[boot]\nsystemd=true\n' >> /etc/wsl.conf
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y && apt-get install -y curl ca-certificates python3
+# Node 24 pela mesma fonte que o install.sh oficial usa (NodeSource)
+if [ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)" -lt 24 ]; then
+  curl -fsSL https://deb.nodesource.com/setup_24.x -o /tmp/nodesource-24.sh
+  bash /tmp/nodesource-24.sh
+  apt-get install -y nodejs
+fi
+node --version
+# Claude Code fixo na 2.1.291 (as mais novas quebram o login da assinatura no Paperclip 2026.1117.0)
+[ "$(claude --version 2>/dev/null | cut -d' ' -f1)" = "2.1.291" ] || npm install -g @anthropic-ai/claude-code@2.1.291
+claude --version | grep -q '^2\.1\.291 '
 echo PREPARADO
 ```
 
-Envie com `-u root`. Depois:
+Envie com `-u root`. O `PATH` da segunda linha deixa de fora os programas do Windows, que o Ubuntu enxerga e que não servem aqui (o `node` e o `claude` do Windows, por exemplo). Depois:
 1. Rode `wsl.exe -d Ubuntu -u root -- ps -p 1 -o comm=`. Se não responder `systemd`, rode `wsl.exe --terminate Ubuntu`, espere 10 segundos e confira de novo. Se o `/etc/wsl.conf` já tinha uma seção `[boot]` com `systemd=false`, corrija essa linha para `true`.
 2. Com o systemd ativo, rode `wsl.exe -d Ubuntu -u root -- loginctl enable-linger paperclip`. Isso mantém o Paperclip rodando sem ninguém logado no Linux.
 
 A liberação de `sudo` sem senha é só para a instalação: ela é removida na etapa 3.4.
 
-### 3.3 Paperclip e Claude Code (como o usuário `paperclip`), pelo manual oficial
+### 3.3 Paperclip (como o usuário `paperclip`)
+
+Antes, confira que a porta 3100 está livre no Windows: `netstat -ano | findstr LISTENING | findstr ":3100 "`. Se aparecer algo, é quase sempre um Paperclip antigo instalado direto no Windows: veja a seção 6 antes de seguir. Se a 3100 estiver ocupada, o Paperclip novo sobe na 3101 e os endereços deste roteiro deixam de funcionar.
 
 ```bash
 set -e
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 cd "$HOME"
-curl -fsSLO https://paperclip.ing/install.sh
-curl -fsSLO https://paperclip.ing/install.sh.sha256
-sha256sum -c install.sh.sha256
-bash install.sh --no-prompt --no-onboard
-command -v claude >/dev/null || sudo npm install -g @anthropic-ai/claude-code
-claude --version
+npx --yes paperclipai@2026.1117.0 install --yes --version 2026.1117.0
 paperclipai onboard --yes --install-service
-paperclipai service status
+# O servico nao deixa o Claude Code se atualizar sozinho (ver a 2.1.291 na etapa 3.2)
+mkdir -p ~/.config/systemd/user/paperclipai.service.d
+printf '[Service]\nEnvironment=DISABLE_AUTOUPDATER=1\n' > ~/.config/systemd/user/paperclipai.service.d/claude-pin.conf
+systemctl --user daemon-reload
+systemctl --user restart paperclipai.service
+# Conferencia final: so imprime INSTALADO se tudo estiver certo
+node --version | grep -qE '^v(2[4-9]|[3-9][0-9])\.'
+claude --version | grep -q '^2\.1\.291 '
+paperclipai --version
+for i in $(seq 1 60); do curl -fsS -m 5 http://127.0.0.1:3100/api/health >/dev/null 2>&1 && break; sleep 5; done
+curl -fsS -m 5 http://127.0.0.1:3100/api/health
+echo
 echo INSTALADO
 ```
 
-Envie com `-u paperclip`. Se o `sha256sum -c` não responder `install.sh: OK`, **pare**: o arquivo baixado não é o oficial. O Claude Code (`claude`) é pré-requisito dos agentes do Paperclip, conforme o manual do adaptador; o Claude Desktop não substitui.
+Envie com `-u paperclip`. O Claude Code (`claude`) é pré-requisito dos agentes do Paperclip, conforme o manual do adaptador; o Claude Desktop não substitui. Se a última linha não for `INSTALADO`, veja a primeira linha com erro e rode os comandos da seção 6.
 
 ### 3.4 Remover a liberação de sudo e manter o Paperclip ligado
 
@@ -103,7 +130,7 @@ if ($ok) { 'PRONTO' } else { 'AINDA NAO' }
 
 O WSL desliga o Linux quando nenhuma janela dele está aberta. O atalho na Inicialização abre uma janela minimizada que mantém o Linux (e o Paperclip) ligado, inclusive depois de reiniciar o Windows.
 
-Se der `AINDA NAO`, rode como `paperclip` (com as mesmas três linhas `export` do 3.3): `paperclipai service status`, `paperclipai service logs` e `paperclipai doctor`, e corrija pelo que aparecer.
+Se der `AINDA NAO`, rode como `paperclip` (com as mesmas linhas `export` do 3.3): `paperclipai service status`, `paperclipai service logs` e `paperclipai doctor`, e corrija pelo que aparecer.
 
 ### 3.5 Modelo de empresa (só se eu mandei chave ou DEMO)
 
@@ -150,24 +177,25 @@ Os agentes só trabalham depois que eu conectar a minha assinatura do Claude. Qu
 
 A tela do Paperclip está em inglês: cite os botões com o nome em inglês e diga o que significam. Um passo por vez, esperando eu dizer "pronto":
 
-1. "Abra http://127.0.0.1:3100/<PREFIXO>/agents/all. É a lista dos agentes."
+1. "Abra http://127.0.0.1:3100/<PREFIXO>/agents/all. É a lista dos agentes. Confira que o endereço começa com **127.0.0.1:3100**. Se você tiver outra aba do Paperclip aberta em outro endereço (por exemplo, 3101), feche: ela é de uma instalação antiga. No dia a dia, abra sempre pelo ícone **Paperclip** da Área de Trabalho."
 2. "Marque a **caixinha do topo da lista**, ao lado de **Agent**, para selecionar todos. Embaixo aparece **Edit connection & model** (editar conexão e modelo): clique."
 3. "Abre a janela **Connect account** (conectar conta). Clique no quadro **Claude – Subscription** (assinatura) e depois no link para entrar no Claude. Vai abrir uma página da Anthropic, a empresa do Claude."
 4. "Nessa página, entre com a conta da sua assinatura e clique em **Autorizar** (ou **Authorize**). Ela mostra um código: copie. Não precisa me mandar."
 5. "Volte ao Paperclip, cole o código no campo **Paste authorization code here** e, se não andar sozinho, clique em **Submit code**. Depois clique em **Connect** e, por fim, em **Update 8 agents** (atualizar os 8 agentes)."
 
-Se aparecer **Sign-in ended before the account was connected**, **This sign-in expired** ou **Sign-in didn't finish**, peça para clicar em **Start sign-in again** ou **Retry sign-in** e refazer os passos 3 a 5. Se ainda falhar, rode como `paperclip`: `command -v claude && command -v python3`, porque o login precisa dos dois. Se algum botão não existir, me peça um print.
+Se aparecer **Sign-in ended before the account was connected**, **This sign-in expired** ou **Sign-in didn't finish**, peça para clicar em **Start sign-in again** ou **Retry sign-in** e refazer os passos 3 a 5. Se ficar parado em **Preparing browser sign-in...** ou ainda falhar, rode como `paperclip` (com os `export` do 3.3): `command -v python3; command -v claude; claude --version`. O login precisa dos dois, e o `claude` tem de estar em `/usr/bin` na versão **2.1.291**. Se a versão for outra, repita a etapa 3.2 e depois `systemctl --user restart paperclipai.service`. Se a tela disser **Failed to fetch** ou **Connection interrupted**, confira o endereço (deve ser a porta 3100) antes de qualquer outra coisa. Se algum botão não existir, me peça um print.
 
 Por fim, lembre que os agentes vêm **pausados**: eles só começam a trabalhar quando eu clicar em **Resume all** (retomar todos) no painel do Paperclip.
 
 ## 6. Se der erro
 
 - **Linux**: rode como `paperclip` (com os `export` do 3.3) `paperclipai doctor` e `paperclipai service logs`, e leia antes de me pedir print.
-- **Porta 3100 ocupada**: pode ser uma instalação antiga do Paperclip direto no Windows. Procure `%LOCALAPPDATA%\Paperclip` ou `C:\Paperclip` e, se existir, me pergunte antes de remover.
+- **Porta 3100 ocupada**: pode ser uma instalação antiga do Paperclip direto no Windows. Procure `%LOCALAPPDATA%\Paperclip` ou `C:\Paperclip`. Se existir, me pergunte antes de mexer. Com o meu OK, pare essa instalação com o `Parar-Paperclip.ps1 -Silencioso` que fica nessa pasta, apague os atalhos dela (`Paperclip.lnk` na Área de Trabalho e na Inicialização, `Parar Paperclip.lnk`) e depois a pasta. Por fim, rode `systemctl --user restart paperclipai.service` como `paperclip` e confira que ele voltou para a 3100.
+- **Versões erradas**: `node --version` tem de ser 24 ou mais, e `claude --version` tem de ser 2.1.291. Se não forem, repita a etapa 3.2.
 - **Internet**: rode a etapa de novo.
 - Para começar do zero (só com o meu OK, porque apaga tudo o que está no Linux): `wsl.exe --unregister Ubuntu` e apague os atalhos `Paperclip.url` (Área de Trabalho) e `Paperclip (WSL).lnk` (Inicialização). Só faça isso se o Ubuntu foi criado por esta instalação.
 
 Regras:
-- Não instale nada além do WSL2/Ubuntu, do Paperclip pelo instalador oficial e do Claude Code.
+- Não instale nada além do WSL2/Ubuntu, do Node 24 (NodeSource), do Paperclip 2026.1117.0 e do Claude Code 2.1.291.
 - Não peça senhas e não leia códigos de autorização.
 - Não desligue antivírus nem mude configurações de segurança do Windows.
