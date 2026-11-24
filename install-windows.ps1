@@ -27,7 +27,8 @@ $VcRuntimeZipSha256 = ''
 # Se o nome do usuario tiver acento/caractere especial, usa C:\Paperclip
 # (o PostgreSQL embutido nao se da bem com caminhos nao-ASCII).
 $Base = Join-Path $env:LOCALAPPDATA 'Paperclip'
-if ($Base -match '[^\x20-\x7E]') { $Base = 'C:\Paperclip' }
+$NaRaiz = $Base -match '[^\x20-\x7E]'
+if ($NaRaiz) { $Base = 'C:\Paperclip' }
 $NodeDir  = Join-Path $Base 'node'
 $DataDir  = Join-Path $Base 'dados'
 $LogDir   = Join-Path $Base 'logs'
@@ -160,8 +161,27 @@ function NovoAtalho($caminho, $script, $argsExtra, $icone, $descricao) {
   $lnk.Save()
 }
 
+# Pasta fora do perfil (C:\Paperclip) herda do C:\ a permissao "Usuarios autenticados: Modificar":
+# qualquer usuario do PC poderia trocar o node.exe ou o iniciador (que roda no login).
+# Por isso: recusa pasta criada por outro usuario e deixa acesso so ao usuario, SYSTEM e Administradores.
+# Usa SIDs (e nao nomes) porque os nomes mudam com o idioma e o do usuario pode ter acento.
+function ProtegerPasta($pasta) {
+  $eu = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  if (Test-Path $pasta) {
+    try { $dono = (Get-Acl $pasta).GetOwner([Security.Principal.SecurityIdentifier]).Value } catch { $dono = '' }
+    if ($dono -notin @($eu, 'S-1-5-32-544', 'S-1-5-18')) {
+      Falha "A pasta $pasta foi criada por outro usuario deste computador. Por seguranca, peca a quem cuida do computador para apaga-la e rode o comando de novo."
+    }
+  } else {
+    New-Item -ItemType Directory -Path $pasta | Out-Null
+  }
+  & icacls $pasta /inheritance:r /grant:r "*${eu}:(OI)(CI)F" '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' /Q | Out-Null
+  if ($LASTEXITCODE -ne 0) { Falha "Nao consegui proteger as permissoes da pasta $pasta (icacls, codigo $LASTEXITCODE)." }
+}
+
 # ================================================================ instalacao
 try {
+  if ($NaRaiz) { ProtegerPasta $Base }
   New-Item -ItemType Directory -Force -Path $Base, $DataDir, $LogDir | Out-Null
   try { Start-Transcript -Path (Join-Path $LogDir 'instalacao.log') -Force | Out-Null } catch { }
   Write-Host 'Instalando o Paperclip. Leva alguns minutos. NAO feche esta janela.' -ForegroundColor Green
