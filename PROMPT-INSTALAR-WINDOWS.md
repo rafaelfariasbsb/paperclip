@@ -11,7 +11,12 @@ Use exatamente as versões deste roteiro: **Paperclip 2026.1117.0**, **Node 24**
 
 ## 2. Primeira mensagem (modo A)
 
-Me pergunte: "Você comprou um modelo de empresa? Se sim, me mande a **chave** (formato `FARM-XXXX-XXXX-X`) e o **nome da sua empresa**. Para só testar, responda DEMO. Se não tiver, responda NÃO."
+Me pergunte: "Qual modelo de empresa você quer instalar?
+1. **Farmácia** – retaguarda de drogaria
+2. **Condomínio** – apoio ao síndico
+Se você comprou, me mande a **chave** (ela já diz qual é o modelo) e o **nome da sua empresa ou do condomínio**. Para só testar, responda **DEMO FARMÁCIA** ou **DEMO CONDOMÍNIO**. Se não quiser nenhum modelo agora, responda NÃO."
+
+O modelo sai da chave pelo prefixo (`FARM-` farmácia, `COND-` condomínio) ou da palavra depois de DEMO. Se eu responder só "DEMO" ou só o número, pergunte o que faltar. Os modelos estão no **catálogo** da etapa 3.5.
 
 Depois explique, com as suas palavras, em no máximo cinco linhas curtas:
 - Vou ligar o "Linux do Windows" (WSL), instalar o Paperclip dentro dele e deixar um ícone na Área de Trabalho. Ele roda só neste computador e abre no navegador.
@@ -19,7 +24,7 @@ Depois explique, com as suas palavras, em no máximo cinco linhas curtas:
 - O aplicativo vai me pedir permissão para rodar comandos: pode permitir.
 - Não vou pedir senhas nem mexer nos seus arquivos.
 
-Espere a resposta e comece. Guarde a chave e não a repita em outras mensagens. Se eu disser DEMO, o nome da empresa é o que eu der (ou "Minha Empresa") seguido de " (DEMONSTRACAO)".
+Espere a resposta e comece. Guarde a chave e não a repita em outras mensagens. Se eu disser DEMO, o nome da empresa é o que eu der (ou o nome padrão do catálogo) seguido de " (DEMONSTRACAO)".
 
 ## 3. Instalação (modo A)
 
@@ -134,42 +139,60 @@ Se der `AINDA NAO`, rode como `paperclip` (com as mesmas linhas `export` do 3.3)
 
 ### 3.5 Modelo de empresa (só se eu mandei chave ou DEMO)
 
-Pule esta etapa se eu disse NÃO. A validação da chave ainda é de teste: qualquer chave no formato `FARM-XXXX-XXXX-X` serve.
+Pule esta etapa se eu disse NÃO. A validação da chave ainda é de teste: qualquer chave no formato `PREFIXO-XXXX-XXXX-X`, com um prefixo do catálogo, serve. Prefixo desconhecido: diga que a chave não é de nenhum modelo disponível e pergunte de novo.
+
+**Catálogo de modelos**
+
+| Prefixo | Modelo | Nome padrão (DEMO) | Pasta no Windows | Variável |
+|---|---|---|---|---|
+| `FARM` | Farmácia – Retaguarda com IA v1.0.0 | Minha Farmácia | `C:\FarmaciaDados` | `FARMACIA_DADOS` |
+| `COND` | Condomínio – Gestão com IA v1.1.0 | Meu Condomínio | `C:\CondominioDados` | `CONDOMINIO_DADOS` |
 
 ```powershell
-$zipUrl = 'https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/templates/farmacia-retaguarda-v1.0.0.zip'
-$sha    = 'C752AF83D3E26A2B8384D31AB7047AB14DD4AB31860FB00C3E952734F1B5EBE6'
+$modelo = 'FARM'           # FARM ou COND, pela chave ou pela resposta DEMO
 $demo   = $true            # $false se eu mandei uma chave
 $nome   = '<EMPRESA>'      # ja com " (DEMONSTRACAO)" se for DEMO; sem apostrofos
-$tmp = Join-Path $env:TEMP 'paperclip-modelo'; New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+$base = 'https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/templates'
+$catalogo = @{
+  FARM = @{ Zip = "$base/farmacia-retaguarda-v1.0.0.zip"; Sha = 'C752AF83D3E26A2B8384D31AB7047AB14DD4AB31860FB00C3E952734F1B5EBE6'
+            Dados = 'C:\FarmaciaDados'; Var = 'FARMACIA_DADOS'; Agentes = 8 }
+  COND = @{ Zip = "$base/condominio-gestao-v1.1.0.zip"; Sha = '78109A9B7A223D8B0C70478223D4E00DF2FD3610D64D5BE9F647F49FACF0A4E5'
+            Dados = 'C:\CondominioDados'; Var = 'CONDOMINIO_DADOS'; Agentes = 8 }
+}
+$m = $catalogo[$modelo]; if (-not $m) { throw "Modelo desconhecido: $modelo" }
+$tmp = Join-Path $env:TEMP 'paperclip-modelo'
+if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 $zip = Join-Path $tmp 'modelo.zip'
-Invoke-WebRequest $zipUrl -OutFile $zip -UseBasicParsing
-if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $sha) { throw 'Modelo corrompido' }
-$dados = 'C:\FarmaciaDados'
+Invoke-WebRequest $m.Zip -OutFile $zip -UseBasicParsing
+if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $m.Sha) { throw 'Modelo corrompido' }
+$dados = $m.Dados
 New-Item -ItemType Directory -Force -Path "$dados\entrada", "$dados\saida" | Out-Null
 if ($demo) {
   Add-Type -AssemblyName System.IO.Compression.FileSystem
   [IO.Compression.ZipFile]::ExtractToDirectory($zip, "$tmp\ex")
   Get-ChildItem "$tmp\ex" -Recurse -Filter *.csv | Where-Object { $_.DirectoryName -like '*dados-exemplo*' } | Copy-Item -Destination "$dados\entrada" -Force
 }
+$var = $m.Var; $dadosLinux = '/mnt/c/' + (Split-Path $dados -Leaf)
 $meta = @{ include = @{ company = $true; agents = $true; skills = $true; issues = $true; projects = $false }
   target = @{ mode = 'new_company'; newCompanyName = $nome }; collisionStrategy = 'rename'; pauseAutomations = $true
-  secretValues = @{ FARMACIA_DADOS = '/mnt/c/FarmaciaDados' } } | ConvertTo-Json -Depth 5 -Compress
+  secretValues = @{ $var = $dadosLinux } } | ConvertTo-Json -Depth 5 -Compress
 [IO.File]::WriteAllText("$tmp\meta.json", $meta, (New-Object Text.UTF8Encoding($false)))
 $cod = & "$env:SystemRoot\System32\curl.exe" -s -o "$tmp\resp.json" -w '%{http_code}' -X POST http://127.0.0.1:3100/api/companies/import -F "package=@$zip;type=application/zip" -F "meta=<$tmp\meta.json"
 $r = Get-Content "$tmp\resp.json" -Raw -Encoding UTF8 | ConvertFrom-Json
 $pref = (Invoke-RestMethod "http://127.0.0.1:3100/api/companies/$($r.company.id)").issuePrefix
-"HTTP $cod - agentes: $(@($r.agents).Count) - prefixo: $pref"
+"HTTP $cod - agentes: $(@($r.agents).Count) de $($m.Agentes) - prefixo: $pref"
 Remove-Item $tmp -Recurse -Force
 ```
 
-Espere `HTTP 200` e 8 agentes. Guarde o prefixo (ex.: `MIN`): ele entra no endereço da seção 5. A pasta `C:\FarmaciaDados` é a mesma que o Linux enxerga como `/mnt/c/FarmaciaDados`: é nela que a farmácia vai colocar as planilhas do sistema.
+Espere `HTTP 200` e o número de agentes do catálogo. Guarde o prefixo (ex.: `MIN`): ele entra no endereço da seção 5. A pasta do modelo (`C:\FarmaciaDados` ou `C:\CondominioDados`) é a mesma que o Linux enxerga em `/mnt/c/...`: é nela que vão as planilhas e exportações do sistema. Para instalar **outro modelo** depois, mande o mesmo link de novo e responda com a outra chave ou DEMO: as etapas 3.1 a 3.4 já estarão feitas e só a 3.5 roda.
 
 ## 4. Quando terminar, me diga em linguagem simples
 
 - que deu certo e o Paperclip abre pelo ícone **Paperclip** na Área de Trabalho (ou em http://127.0.0.1:3100);
 - que ele liga sozinho com o computador e que aparece uma janelinha minimizada do Linux na barra de tarefas: **não feche essa janela**, ela mantém o Paperclip ligado;
-- se instalei o modelo, que as planilhas do sistema da farmácia vão na pasta `C:\FarmaciaDados\entrada`.
+- se instalei o modelo, qual foi e em que pasta vão as planilhas: `C:\FarmaciaDados\entrada` (farmácia: exportações do sistema da loja) ou `C:\CondominioDados\entrada` (condomínio: relatórios da administradora e extrato do banco em OFX);
+- que o primeiro agente a ativar é o **Implantação**, que faz as perguntas de configuração.
 
 ## 5. Último passo: conectar a assinatura do Claude
 
@@ -181,7 +204,7 @@ A tela do Paperclip está em inglês: cite os botões com o nome em inglês e di
 2. "Marque a **caixinha do topo da lista**, ao lado de **Agent**, para selecionar todos. Embaixo aparece **Edit connection & model** (editar conexão e modelo): clique."
 3. "Abre a janela **Connect account** (conectar conta). Clique no quadro **Claude – Subscription** (assinatura) e depois no link para entrar no Claude. Vai abrir uma página da Anthropic, a empresa do Claude."
 4. "Nessa página, entre com a conta da sua assinatura e clique em **Autorizar** (ou **Authorize**). Ela mostra um código: copie. Não precisa me mandar."
-5. "Volte ao Paperclip, cole o código no campo **Paste authorization code here** e, se não andar sozinho, clique em **Submit code**. Depois clique em **Connect** e, por fim, em **Update 8 agents** (atualizar os 8 agentes)."
+5. "Volte ao Paperclip, cole o código no campo **Paste authorization code here** e, se não andar sozinho, clique em **Submit code**. Depois clique em **Connect** e, por fim, em **Update N agents** (atualizar os agentes; N é o número de agentes do modelo)."
 
 Se aparecer **Sign-in ended before the account was connected**, **This sign-in expired** ou **Sign-in didn't finish**, peça para clicar em **Start sign-in again** ou **Retry sign-in** e refazer os passos 3 a 5. Se ficar parado em **Preparing browser sign-in...** ou ainda falhar, rode como `paperclip` (com os `export` do 3.3): `command -v python3; command -v claude; claude --version`. O login precisa dos dois, e o `claude` tem de estar em `/usr/bin` na versão **2.1.291**. Se a versão for outra, repita a etapa 3.2 e depois `systemctl --user restart paperclipai.service`. Se a tela disser **Failed to fetch** ou **Connection interrupted**, confira o endereço (deve ser a porta 3100) antes de qualquer outra coisa. Se algum botão não existir, me peça um print.
 
