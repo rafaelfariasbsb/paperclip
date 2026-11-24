@@ -1,5 +1,6 @@
 # Paperclip - instalador "um comando" para Windows 10/11
-# Uso (Win+R):  powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 | iex"
+# Uso (Win+R):  powershell -NoProfile -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 -OutFile $env:TEMP\install-paperclip.ps1; & $env:TEMP\install-paperclip.ps1"
+# Nao use "irm ... | iex": o Windows Defender bloqueia (padrao de download e execucao em memoria).
 #
 # Faz, sem pedir administrador (quando as DLLs do VC++ estao disponiveis):
 #   Node.js portatil -> Paperclip -> DLLs do VC++ ao lado do PostgreSQL embutido ->

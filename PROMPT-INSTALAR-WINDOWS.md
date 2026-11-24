@@ -25,7 +25,8 @@ Não digite nem cole nada na caixa "Executar", no PowerShell, no Prompt de Coman
    ```powershell
    if ([Environment]::OSVersion.Version.Major -lt 10 -or -not [Environment]::Is64BitOperatingSystem) { 'WINDOWS INCOMPATIVEL' } else {
      $env:PAPERCLIP_CHAVE = '<CHAVE>'; $env:PAPERCLIP_NOME_EMPRESA = '<EMPRESA>'
-     Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command','irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 | iex'
+     $inst = Join-Path $env:TEMP 'install-paperclip.ps1'; irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 -OutFile $inst
+     Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$inst
      $ok = $false; $fim = (Get-Date).AddMinutes(8)
      while (-not $ok -and (Get-Date) -lt $fim) { Start-Sleep 10; try { $ok = (Invoke-WebRequest http://127.0.0.1:3100/api/health -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200 } catch { } }
      $lic = @("$env:LOCALAPPDATA\Paperclip\licenca.json", 'C:\Paperclip\licenca.json')
@@ -64,7 +65,7 @@ Me guie pela caixa Executar, um passo por vez, esperando eu dizer "pronto" antes
 2. "Clique no botão de copiar da linha abaixo, cole na caixinha com Ctrl+V e aperte Enter:"
 
    ```
-   powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 | iex"
+   powershell -NoProfile -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 -OutFile $env:TEMP\install-paperclip.ps1; & $env:TEMP\install-paperclip.ps1"
    ```
 
 3. "Vai abrir uma janela azul com textos. Não feche até aparecer PRONTO; leva de 5 a 15 minutos. Se o Windows perguntar se pode fazer alterações, clique em SIM."
