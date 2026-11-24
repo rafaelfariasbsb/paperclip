@@ -6,7 +6,9 @@ import { DEFAULT_LOCALE, localeMessages } from "./locales";
 import { validateLocaleMessages } from "./locale-validation";
 
 describe("locale validation", () => {
-  it("resolves English messages with key and default fallbacks", () => {
+  it("resolves English messages with key and default fallbacks", async () => {
+    // The UI now detects the browser language, so pin English instead of relying on the host locale.
+    await i18next.changeLanguage(DEFAULT_LOCALE);
     expect(t("app.noCompanies.title")).toBe(en.app.noCompanies.title);
     expect(t("app.missing", { defaultValue: "Fallback" })).toBe("Fallback");
     expect(t("app.missing")).toBe("app.missing");
