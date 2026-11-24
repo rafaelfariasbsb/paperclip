@@ -23,6 +23,24 @@ $IniciarComWindows = $true
 $VcRuntimeZipUrl    = ''
 $VcRuntimeZipSha256 = ''
 
+# ---------------------------------------------------------------- licenca e templates (MOCK)
+# Enquanto nao existir o servidor de licencas, a chave e validada localmente (formato + digito).
+# Quando existir: preencha $LicencaApiUrl. O servidor deve responder ao POST {chave} com
+# { "valida": true, "produto": "FARM", "zipUrl": "...", "sha256": "...", "versao": "1.0.0" }.
+$LicencaApiUrl = ''
+# Chave pode vir pronta (ex.: instalacao feita por um assistente de IA): $env:PAPERCLIP_CHAVE e $env:PAPERCLIP_NOME_EMPRESA
+$Catalogo = @{
+  'FARM' = @{
+    Nome    = 'Farmacia - Retaguarda com IA'
+    Versao  = '1.0.0'
+    ZipUrl  = 'https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/templates/farmacia-retaguarda-v1.0.0.zip'
+    Sha256  = 'C752AF83D3E26A2B8384D31AB7047AB14DD4AB31860FB00C3E952734F1B5EBE6'
+    EnvDados = 'FARMACIA_DADOS'
+  }
+}
+# Python portatil (os scripts das skills usam python3; o Windows nao traz Python)
+$PythonVersao = '3.12.10'
+
 # ---------------------------------------------------------------- caminhos
 # Se o nome do usuario tiver acento/caractere especial, usa C:\Paperclip
 # (o PostgreSQL embutido nao se da bem com caminhos nao-ASCII).
@@ -36,6 +54,9 @@ $Iniciar  = Join-Path $Base 'Iniciar-Paperclip.ps1'
 $Parar    = Join-Path $Base 'Parar-Paperclip.ps1'
 $PsExe    = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $VcDlls   = 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll'
+$PyDir    = Join-Path $Base 'python'
+$EmpresaDados = Join-Path $Base 'empresa'
+$LicencaArq   = Join-Path $Base 'licenca.json'
 
 function Passo($t) { Write-Host "`n==> $t" -ForegroundColor Cyan }
 function Falha($t) {
@@ -59,7 +80,7 @@ $NodeDir = Join-Path $Base 'node'
 $LogDir  = Join-Path $Base 'logs'
 $Log     = Join-Path $LogDir 'paperclip.log'
 $Url     = 'http://127.0.0.1:3100'
-$env:Path                 = "$NodeDir;$env:Path"
+$env:Path                 = "$NodeDir;$(Join-Path $Base 'python');$env:Path"
 $env:PAPERCLIP_HOME       = Join-Path $Base 'dados'
 $env:PAPERCLIP_NO_BROWSER = '1'
 
@@ -179,6 +200,106 @@ function ProtegerPasta($pasta) {
   if ($LASTEXITCODE -ne 0) { Falha "Nao consegui proteger as permissoes da pasta $pasta (icacls, codigo $LASTEXITCODE)." }
 }
 
+# ---------------------------------------------------------------- licenca (mock) e template
+$Alfa = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'   # sem 0, 1, I, O (evita confusao ao digitar)
+# Ha alguem para digitar? (instalacao rodada direto no terminal de um assistente de IA nao tem)
+$Interativo = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected
+function DigitoChave([string]$s) {
+  $t = 0
+  for ($i = 0; $i -lt $s.Length; $i++) { $t += ($Alfa.IndexOf($s[$i]) + 1) * ($i + 1) }
+  return $Alfa[$t % $Alfa.Length]
+}
+# Devolve $null (invalida) ou @{ Produto; Demo; Chave }
+function ValidarChave([string]$chave) {
+  $c = ($chave -replace '\s', '').ToUpperInvariant()
+  if ($c -match '^DEMO-([A-Z]{4})$' -and $Catalogo.ContainsKey($Matches[1])) {
+    return @{ Produto = $Matches[1]; Demo = $true; Chave = $c }
+  }
+  if ($LicencaApiUrl) {
+    try {
+      $r = Invoke-RestMethod $LicencaApiUrl -Method Post -ContentType 'application/json' -Body (@{ chave = $c } | ConvertTo-Json) -UseBasicParsing
+      if ($r.valida) {
+        $Catalogo[$r.produto] = @{ Nome = $r.nome; Versao = $r.versao; ZipUrl = $r.zipUrl; Sha256 = $r.sha256; EnvDados = $r.envDados }
+        return @{ Produto = $r.produto; Demo = $false; Chave = $c }
+      }
+    } catch { Write-Host "Nao consegui falar com o servidor de licencas: $($_.Exception.Message)" -ForegroundColor Yellow }
+    return $null
+  }
+  # MOCK: PROD-XXXX-XXXX-D
+  if ($c -notmatch '^([A-Z]{4})-([2-9A-HJ-NP-Z]{4})-([2-9A-HJ-NP-Z]{4})-([2-9A-HJ-NP-Z])$') { return $null }
+  if (-not $Catalogo.ContainsKey($Matches[1])) { return $null }
+  if ((DigitoChave ($Matches[1] + $Matches[2] + $Matches[3])) -ne $Matches[4][0]) { return $null }
+  return @{ Produto = $Matches[1]; Demo = $false; Chave = $c }
+}
+function PedirLicenca {
+  if ($env:PAPERCLIP_CHAVE -eq 'NENHUMA') { return $null }
+  if ($env:PAPERCLIP_CHAVE) {
+    $l = ValidarChave $env:PAPERCLIP_CHAVE
+    if (-not $l) { Falha 'A chave informada nao e valida. Confira e rode de novo.' }
+    return $l
+  }
+  if (-not $Interativo) { return $null }
+  Write-Host "`nSe voce comprou um modelo de empresa (template), digite a CHAVE abaixo." -ForegroundColor Cyan
+  Write-Host 'Formato: FARM-XXXX-XXXX-X. Para testar sem chave: DEMO-FARM. Para instalar sem modelo: so aperte ENTER.'
+  for ($i = 1; $i -le 3; $i++) {
+    $digitado = Read-Host 'Chave'
+    if (-not $digitado) { return $null }
+    $l = ValidarChave $digitado
+    if ($l) { return $l }
+    Write-Host 'Chave invalida. Confira as letras e os tracos.' -ForegroundColor Yellow
+  }
+  Falha 'Chave invalida depois de 3 tentativas. Confira a chave com quem vendeu e rode de novo.'
+}
+function ImportarTemplate($lic, [string]$nomeEmpresa) {
+  $item = $Catalogo[$lic.Produto]
+  Passo "Instalando o modelo: $($item.Nome) v$($item.Versao)"
+  $tmpBase = Join-Path $Base 'tmp'   # caminho sempre ASCII (curl.exe e PS 5.1)
+  New-Item -ItemType Directory -Force -Path $tmpBase | Out-Null
+  $zip = Join-Path $tmpBase "template-$($lic.Produto)-$($item.Versao).zip"
+  Invoke-WebRequest $item.ZipUrl -OutFile $zip -UseBasicParsing
+  if ($item.Sha256 -and (Get-FileHash $zip -Algorithm SHA256).Hash -ne $item.Sha256.ToUpper()) {
+    Falha 'O arquivo do modelo veio corrompido. Rode o comando de novo.'
+  }
+  # pasta de dados do modelo (entrada = exportacoes do sistema, saida = relatorios)
+  $dados = Join-Path $EmpresaDados $lic.Produto.ToLower()
+  New-Item -ItemType Directory -Force -Path (Join-Path $dados 'entrada'), (Join-Path $dados 'saida') | Out-Null
+  if ($lic.Demo) {
+    $tmp = Join-Path $tmpBase "template-$($lic.Produto)-ex"
+    if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $tmp)
+    Get-ChildItem $tmp -Recurse -Filter *.csv | Where-Object { $_.DirectoryName -like '*dados-exemplo*' } |
+      Copy-Item -Destination (Join-Path $dados 'entrada') -Force
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  $meta = @{
+    include           = @{ company = $true; agents = $true; skills = $true; issues = $true; projects = $false }
+    target            = @{ mode = 'new_company'; newCompanyName = $nomeEmpresa }
+    collisionStrategy = 'rename'
+    pauseAutomations  = $true
+  }
+  if ($item.EnvDados) { $meta.secretValues = @{ ($item.EnvDados) = $dados } }
+  $meta = $meta | ConvertTo-Json -Depth 5 -Compress
+  $metaArq = Join-Path $tmpBase 'import-meta.json'
+  [IO.File]::WriteAllText($metaArq, $meta, (New-Object Text.UTF8Encoding($false)))
+  $resp = Join-Path $tmpBase 'import-resp.json'
+  $curl = Join-Path $env:SystemRoot 'System32\curl.exe'
+  if (-not (Test-Path $curl)) { Falha 'Este Windows nao tem o curl.exe (precisa do Windows 10 versao 1803 ou mais novo). Atualize o Windows e rode de novo.' }
+  $codigo = & $curl -s -o $resp -w '%{http_code}' -X POST 'http://127.0.0.1:3100/api/companies/import' `
+    -F "package=@$zip;type=application/zip" -F "meta=<$metaArq"
+  if ($codigo -ne '200') {
+    $msg = if (Test-Path $resp) { Get-Content $resp -Raw } else { '' }
+    Falha "Nao consegui importar o modelo (HTTP $codigo). $msg"
+  }
+  $r = Get-Content $resp -Raw -Encoding UTF8 | ConvertFrom-Json
+  @{ produto = $lic.Produto; versao = $item.Versao; chave = $lic.Chave; demo = $lic.Demo; empresaId = $r.company.id
+     empresa = $nomeEmpresa; dados = $dados; instaladoEm = (Get-Date).ToString('s') } |
+    ConvertTo-Json | Set-Content -Path $LicencaArq -Encoding UTF8
+  Remove-Item $tmpBase -Recurse -Force -ErrorAction SilentlyContinue
+  Write-Host "Modelo instalado: empresa '$nomeEmpresa' com $(@($r.agents).Count) agentes (todos pausados)." -ForegroundColor Green
+  Write-Host "Pasta de dados: $dados"
+}
+
 # ================================================================ instalacao
 try {
   if ($NaRaiz) { ProtegerPasta $Base }
@@ -186,6 +307,24 @@ try {
   try { Start-Transcript -Path (Join-Path $LogDir 'instalacao.log') -Force | Out-Null } catch { }
   Write-Host 'Instalando o Paperclip. Leva alguns minutos. NAO feche esta janela.' -ForegroundColor Green
   Write-Host "Pasta: $Base"
+
+  # Licenca: pergunta no inicio para a pessoa nao esperar o download e depois errar a chave
+  $ja = $null
+  if (Test-Path $LicencaArq) { try { $ja = Get-Content $LicencaArq -Raw | ConvertFrom-Json } catch { } }
+  $licenca = $null; $nomeEmpresa = $null
+  $novaChave = $env:PAPERCLIP_CHAVE -and $env:PAPERCLIP_CHAVE -ne 'NENHUMA' -and
+    (($env:PAPERCLIP_CHAVE -replace '\s', '').ToUpperInvariant() -ne $ja.chave)
+  if ($ja -and $ja.empresaId -and -not $ja.demo -and -not $novaChave) {
+    Write-Host "Modelo ja instalado antes: $($ja.produto) v$($ja.versao) ($($ja.empresa)). Reinstalando so o Paperclip." -ForegroundColor Cyan
+  } else {
+    $licenca = PedirLicenca
+    if ($licenca) {
+      $nomeEmpresa = $env:PAPERCLIP_NOME_EMPRESA
+      if (-not $nomeEmpresa -and $Interativo -and -not $env:PAPERCLIP_CHAVE) { $nomeEmpresa = Read-Host 'Nome da empresa (ex.: Drogaria Sao Jose)' }
+      if (-not $nomeEmpresa) { $nomeEmpresa = 'Minha Empresa' }
+      if ($licenca.Demo) { $nomeEmpresa = "$nomeEmpresa (DEMONSTRACAO)" }
+    }
+  }
 
   # 0) Reinstalacao: encerra o que estiver rodando para liberar os arquivos
   if (Test-Path $Parar) {
@@ -233,6 +372,21 @@ try {
     Remove-Item $tmp, $zip -Recurse -Force -ErrorAction SilentlyContinue
   }
   $env:Path = "$NodeDir;$env:Path"
+
+  # 1b) Python portatil (sem administrador) para os scripts das skills
+  $pyExe = Join-Path $PyDir 'python.exe'
+  if (-not (Test-Path $pyExe)) {
+    Passo 'Baixando o Python portatil (usado pelos calculos dos agentes)'
+    $pyZip = Join-Path $env:TEMP "python-$PythonVersao-embed-amd64.zip"
+    Invoke-WebRequest "https://www.python.org/ftp/python/$PythonVersao/python-$PythonVersao-embed-amd64.zip" -OutFile $pyZip -UseBasicParsing
+    if (Test-Path $PyDir) { Remove-Item $PyDir -Recurse -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::ExtractToDirectory($pyZip, $PyDir)
+    Remove-Item $pyZip -Force -ErrorAction SilentlyContinue
+  }
+  # os scripts chamam "python3"; no Windows o executavel se chama python.exe
+  Copy-Item $pyExe (Join-Path $PyDir 'python3.exe') -Force
+  $env:Path = "$PyDir;$env:Path"
 
   # 2) Paperclip (fica dentro da pasta do Node; .cmd evita bloqueio de politica do PowerShell)
   Passo 'Baixando e instalando o Paperclip (a parte mais demorada)'
@@ -298,10 +452,13 @@ try {
 
   # 5) Primeira configuracao (banco, chaves) e inicio em segundo plano
   Passo 'Configurando e iniciando o Paperclip (na primeira vez demora um pouco mais)'
-  & $PsExe -NoProfile -ExecutionPolicy Bypass -File $Iniciar -Silencioso
+  & $PsExe -NoProfile -ExecutionPolicy Bypass -File $Iniciar -Silencioso -SemNavegador
   $codigo = $LASTEXITCODE
   if ($codigo -eq 2) { Falha 'A porta 3100 esta sendo usada por outro programa. Feche-o (ou reinicie o computador) e rode o comando de novo.' }
   if ($codigo -ne 0) { Falha "O Paperclip nao iniciou. Detalhes em $LogDir\paperclip.log" }
+
+  # 6) Modelo de empresa (template) comprado
+  if ($licenca) { ImportarTemplate $licenca $nomeEmpresa }
 
   Write-Host "`nPRONTO! O Paperclip esta rodando e o navegador vai abrir." -ForegroundColor Green
   Write-Host 'Pode fechar esta janela. Nas proximas vezes: dois cliques no icone "Paperclip" da Area de Trabalho.' -ForegroundColor Green

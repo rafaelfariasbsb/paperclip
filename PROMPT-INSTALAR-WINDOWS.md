@@ -9,26 +9,36 @@ Não digite nem cole nada na caixa "Executar", no PowerShell, no Prompt de Coman
 
 ## 2. Modo A: você instala tudo
 
-1. Sua primeira mensagem é só esta explicação, com as suas palavras, em no máximo cinco linhas curtas. Depois dela, comece a instalação sem esperar a minha resposta:
+1. Sua primeira mensagem tem duas partes.
+   - Primeiro, me pergunte: "Você comprou um modelo de empresa? Se sim, me mande a **chave** (formato `FARM-XXXX-XXXX-X`) e o **nome da sua empresa**. Para só testar, responda DEMO. Se não tiver, responda NÃO."
+   - Depois, a explicação abaixo, com as suas palavras, em no máximo cinco linhas curtas.
+
+   Espere a minha resposta sobre a chave e então comece a instalação. Não peça mais nada.
    - Vou instalar o Paperclip, um programa que roda só neste computador e abre no navegador. Junto vem o Node.js, do site oficial. Aparecem dois ícones na Área de Trabalho e o Paperclip passa a ligar junto com o computador.
    - Eu mesmo vou rodar a instalação neste computador. O aplicativo vai me pedir permissão: pode permitir.
    - Vai abrir uma janela azul por 5 a 15 minutos. Não feche. Se o Windows perguntar se pode fazer alterações, clique em SIM.
    - Não vou pedir senhas, mexer nos seus arquivos nem mudar a segurança do Windows. Para parar, use o botão de parar aqui ou feche a janela azul.
-2. Rode o bloco abaixo como um comando só, na ferramenta PowerShell, com tempo limite de pelo menos 9 minutos. Assim o aplicativo me pede permissão uma vez só. O bloco confere o Windows, abre a instalação numa janela própria e espera o Paperclip responder.
+2. Rode o bloco abaixo como um comando só, na ferramenta PowerShell, com tempo limite de pelo menos 9 minutos. Assim o aplicativo me pede permissão uma vez só. O bloco confere o Windows, abre a instalação numa janela própria e espera o Paperclip e o modelo ficarem prontos.
+
+   Antes de rodar, troque `<CHAVE>` e `<EMPRESA>` pelo que eu respondi. Se eu disse DEMO, use `DEMO-FARM`. Se eu disse NÃO, use `NENHUMA`. No nome da empresa, tire apóstrofos ('). Não mostre a chave em outras mensagens.
 
    ```powershell
    if ([Environment]::OSVersion.Version.Major -lt 10 -or -not [Environment]::Is64BitOperatingSystem) { 'WINDOWS INCOMPATIVEL' } else {
+     $env:PAPERCLIP_CHAVE = '<CHAVE>'; $env:PAPERCLIP_NOME_EMPRESA = '<EMPRESA>'
      Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command','irm https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/install-windows.ps1 | iex'
      $ok = $false; $fim = (Get-Date).AddMinutes(8)
      while (-not $ok -and (Get-Date) -lt $fim) { Start-Sleep 10; try { $ok = (Invoke-WebRequest http://127.0.0.1:3100/api/health -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200 } catch { } }
+     $lic = @("$env:LOCALAPPDATA\Paperclip\licenca.json", 'C:\Paperclip\licenca.json')
+     if ($ok -and $env:PAPERCLIP_CHAVE -ne 'NENHUMA') { $fim2 = (Get-Date).AddMinutes(3); while (-not ($lic | Where-Object { Test-Path $_ }) -and (Get-Date) -lt $fim2) { Start-Sleep 10 } }
      $d = [Environment]::GetFolderPath('Desktop')
-     if (-not $ok) { 'AINDA NAO' } elseif ((Test-Path "$d\Paperclip.lnk") -and (Test-Path "$d\Parar Paperclip.lnk")) { 'PRONTO' } else { 'SEM ATALHOS' }
+     if (-not $ok) { 'AINDA NAO' } elseif ($env:PAPERCLIP_CHAVE -ne 'NENHUMA' -and -not ($lic | Where-Object { Test-Path $_ })) { 'SEM MODELO' } elseif ((Test-Path "$d\Paperclip.lnk") -and (Test-Path "$d\Parar Paperclip.lnk")) { 'PRONTO' } else { 'SEM ATALHOS' }
    }
    ```
 
 3. Conforme a resposta:
    - `PRONTO`: vá para a seção 4.
    - `AINDA NAO`: rode de novo só a espera e a verificação (da linha do `$ok = $false` até a do `if (-not $ok)`), até 20 minutos no total. Não abra a instalação outra vez.
+   - `SEM MODELO`: o Paperclip abriu, mas o modelo não foi instalado. Na maioria das vezes, a chave está errada. Leia `instalacao.log` (veja "Se der erro") e me explique.
    - `SEM ATALHOS`: o Paperclip abriu, mas faltam os ícones. Leia o registro (veja "Se der erro") e me explique.
    - `WINDOWS INCOMPATIVEL`: pare e me explique que o Paperclip precisa de Windows 10 ou 11, 64 bits.
 
@@ -58,6 +68,7 @@ Me guie pela caixa Executar, um passo por vez, esperando eu dizer "pronto" antes
    ```
 
 3. "Vai abrir uma janela azul com textos. Não feche até aparecer PRONTO; leva de 5 a 15 minutos. Se o Windows perguntar se pode fazer alterações, clique em SIM."
+4. "No começo, a janela pede a **chave** do modelo que você comprou. Digite e aperte Enter. Para só testar, digite DEMO-FARM. Se não tiver chave, só aperte Enter. Depois ela pede o nome da sua empresa."
 
 Se você consegue ver a tela, avise antes do passo 1: "Vou acompanhar pela sua tela. Se o aplicativo pedir permissão, pode permitir: eu só olho, não clico. Feche antes o que for particular, como banco e e-mail." Depois do passo 3, olhe a tela a cada 30 segundos, por até 20 minutos, sem clicar nem digitar, e confira a palavra PRONTO, o navegador em http://127.0.0.1:3100 e os ícones na Área de Trabalho. Não teste o endereço pela sua ferramenta de comandos: ela não enxerga este computador. Se você não vê a tela, me pergunte o que apareceu.
 
