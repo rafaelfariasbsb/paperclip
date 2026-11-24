@@ -146,7 +146,7 @@ Pule esta etapa se eu disse NÃO. A validação da chave ainda é de teste: qual
 | Prefixo | Modelo | Nome padrão (DEMO) | Pasta no Windows | Variável |
 |---|---|---|---|---|
 | `FARM` | Farmácia – Retaguarda com IA v1.0.0 | Minha Farmácia | `C:\FarmaciaDados` | `FARMACIA_DADOS` |
-| `COND` | Condomínio – Gestão com IA v1.1.0 | Meu Condomínio | `C:\CondominioDados` | `CONDOMINIO_DADOS` |
+| `COND` | Condomínio – Gestão com IA v1.2.0 | Meu Condomínio | `C:\CondominioDados` | `CONDOMINIO_DADOS` |
 
 ```powershell
 $modelo = 'FARM'           # FARM ou COND, pela chave ou pela resposta DEMO
@@ -156,8 +156,8 @@ $base = 'https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-ins
 $catalogo = @{
   FARM = @{ Zip = "$base/farmacia-retaguarda-v1.0.0.zip"; Sha = 'C752AF83D3E26A2B8384D31AB7047AB14DD4AB31860FB00C3E952734F1B5EBE6'
             Dados = 'C:\FarmaciaDados'; Var = 'FARMACIA_DADOS'; Agentes = 8 }
-  COND = @{ Zip = "$base/condominio-gestao-v1.1.0.zip"; Sha = '78109A9B7A223D8B0C70478223D4E00DF2FD3610D64D5BE9F647F49FACF0A4E5'
-            Dados = 'C:\CondominioDados'; Var = 'CONDOMINIO_DADOS'; Agentes = 8 }
+  COND = @{ Zip = "$base/condominio-gestao-v1.2.0.zip"; Sha = 'EE896B05287A03680A691CBEC7B691E41D3A97898383904D5652D3FFDCC5D26D'
+            Dados = 'C:\CondominioDados'; Var = 'CONDOMINIO_DADOS'; Agentes = 9 }
 }
 $m = $catalogo[$modelo]; if (-not $m) { throw "Modelo desconhecido: $modelo" }
 $tmp = Join-Path $env:TEMP 'paperclip-modelo'
