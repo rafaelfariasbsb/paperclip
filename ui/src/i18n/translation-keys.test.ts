@@ -47,6 +47,18 @@ describe("translation keys", () => {
     expect(t("dashboard.budget.activeIncidents", { count: 3 })).toBe("3 incidentes de orçamento ativos");
   });
 
+  it("renders the subscription sign-in journey in Brazilian Portuguese", async () => {
+    await i18n.changeLanguage("pt-BR");
+    expect(t("agents.roster.editConnectionModel")).toBe("Editar conexão e modelo");
+    expect(t("aiConnect.field.connectTitle")).toBe("Conectar conta");
+    expect(t("aiConnect.tiles.subscription")).toBe("Assinatura");
+    expect(t("aiConnect.login.codePlaceholder")).toBe("Cole aqui o código de autorização");
+    expect(t("aiConnect.login.submitCode")).toBe("Enviar código");
+    expect(t("aiConnect.connect.connect")).toBe("Conectar");
+    expect(t("agents.bulk.update", { count: 8 })).toBe("Atualizar 8 agentes");
+    expect(t("agents.bulk.update", { count: 1 })).toBe("Atualizar 1 agente");
+  });
+
   it("keeps the English copy for plural messages", () => {
     expect(t("dashboard.pausedImported.title", { count: 1 })).toBe("1 imported agent is paused and will not run.");
     expect(t("dashboard.pausedImported.title", { count: 2 })).toBe("2 imported agents are paused and will not run.");
