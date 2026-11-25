@@ -485,6 +485,21 @@
       "useSavedSubscription": "Usar assinatura salva",
       "useSavedKey": "Usar chave de API salva",
       "connect": "Conectar"
+    },
+    "select": {
+      "connection": "Conexão",
+      "loading": "Carregando conexões…",
+      "choose": "Escolha uma conexão",
+      "responsibleDefault": "Padrão do usuário responsável",
+      "unavailable": "Conexão indisponível",
+      "incompatible": "{{name}} · Incompatível",
+      "needsReconnect": "{{name}} · Reconectar",
+      "connectAccount": "Conectar uma conta…",
+      "reconnectAccount": "Reconectar conta",
+      "retry": "Tentar carregar as conexões de novo",
+      "noDefault": "Você não tem conta padrão para este provedor. Conecte uma conta ou escolha outra conexão.",
+      "unavailableHint": "Esta conexão está indisponível. Escolha outra conexão.",
+      "incompatibleHint": "Esta conexão não aceita a ferramenta escolhida. Escolha uma conexão compatível."
     }
   },
   "onboarding": {

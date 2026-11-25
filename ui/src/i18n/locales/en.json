@@ -485,6 +485,21 @@
       "useSavedSubscription": "Use saved subscription",
       "useSavedKey": "Use saved API key",
       "connect": "Connect"
+    },
+    "select": {
+      "connection": "Connection",
+      "loading": "Loading connections…",
+      "choose": "Choose a connection",
+      "responsibleDefault": "Responsible user’s default",
+      "unavailable": "Unavailable connection",
+      "incompatible": "{{name}} · Incompatible",
+      "needsReconnect": "{{name}} · Reconnect",
+      "connectAccount": "Connect an account…",
+      "reconnectAccount": "Reconnect account",
+      "retry": "Retry connections",
+      "noDefault": "You have no default account for this provider. Connect an account or choose another connection.",
+      "unavailableHint": "This connection is unavailable. Choose another connection.",
+      "incompatibleHint": "This connection does not support the selected harness. Choose a compatible connection."
     }
   },
   "onboarding": {
