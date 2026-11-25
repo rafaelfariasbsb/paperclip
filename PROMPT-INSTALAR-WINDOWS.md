@@ -100,6 +100,17 @@ export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 cd "$HOME"
 npx --yes paperclipai@2026.1117.0 install --yes --version 2026.1117.0
 paperclipai onboard --yes --install-service
+# Interface em portugues: troca so a pasta ui-dist do servidor oficial pela versao traduzida (mesma versao 2026.1117.0)
+UI_TAG=ui-ptbr-2026.1117.0-8eea7ab25
+UI_SHA=92893dfbb981729a5e9e1ac00c1c646da6b529e49c7a6b8a6db1a4b8423f2b12
+UI_DIR="$HOME/.paperclip/cli/current/node_modules/@paperclipai/server/ui-dist"
+paperclipai --version | grep -q '2026\.1117\.0'
+curl -fsSL -o /tmp/ui-ptbr.tar.gz "https://github.com/rafaelfariasbsb/paperclip/releases/download/$UI_TAG/paperclip-ui-ptbr-2026.1117.0-8eea7ab25.tar.gz"
+echo "$UI_SHA  /tmp/ui-ptbr.tar.gz" | sha256sum -c
+[ -d "$UI_DIR.oficial" ] || cp -a "$UI_DIR" "$UI_DIR.oficial"
+rm -rf "$UI_DIR.novo" && mkdir -p "$UI_DIR.novo" && tar -xzf /tmp/ui-ptbr.tar.gz -C "$UI_DIR.novo"
+test -f "$UI_DIR.novo/index.html"
+rm -rf "$UI_DIR" && mv "$UI_DIR.novo" "$UI_DIR" && rm -f /tmp/ui-ptbr.tar.gz
 # O servico nao deixa o Claude Code se atualizar sozinho (ver a 2.1.291 na etapa 3.2)
 mkdir -p ~/.config/systemd/user/paperclipai.service.d
 printf '[Service]\nEnvironment=DISABLE_AUTOUPDATER=1\n' > ~/.config/systemd/user/paperclipai.service.d/claude-pin.conf
@@ -109,13 +120,14 @@ systemctl --user restart paperclipai.service
 node --version | grep -qE '^v(2[4-9]|[3-9][0-9])\.'
 claude --version | grep -q '^2\.1\.291 '
 paperclipai --version
+grep -lq 'Cole aqui o código de autorização' "$UI_DIR"/assets/*.js
 for i in $(seq 1 60); do curl -fsS -m 5 http://127.0.0.1:3100/api/health >/dev/null 2>&1 && break; sleep 5; done
 curl -fsS -m 5 http://127.0.0.1:3100/api/health
 echo
 echo INSTALADO
 ```
 
-Envie com `-u paperclip`. O Claude Code (`claude`) é pré-requisito dos agentes do Paperclip, conforme o manual do adaptador; o Claude Desktop não substitui. Se a última linha não for `INSTALADO`, veja a primeira linha com erro e rode os comandos da seção 6.
+Envie com `-u paperclip`. A interface em português vem da Release `ui-ptbr-2026.1117.0-8eea7ab25` do fork (só a pasta `ui-dist`, conferida pelo SHA-256). A original fica guardada em `ui-dist.oficial`: para voltar ao inglês, apague `ui-dist`, renomeie `ui-dist.oficial` para `ui-dist` e rode `systemctl --user restart paperclipai.service`. Se o Paperclip for atualizado para outra versão, a interface volta ao inglês até existir uma Release traduzida para essa versão. Não use a interface traduzida com outra versão do servidor. O Claude Code (`claude`) é pré-requisito dos agentes do Paperclip, conforme o manual do adaptador; o Claude Desktop não substitui. Se a última linha não for `INSTALADO`, veja a primeira linha com erro e rode os comandos da seção 6.
 
 ### 3.4 Remover a liberação de sudo e manter o Paperclip ligado
 
@@ -198,17 +210,17 @@ Espere `HTTP 200` e o número de agentes do catálogo. Guarde o prefixo (ex.: `M
 
 Os agentes só trabalham depois que eu conectar a minha assinatura do Claude. Quem faz isso sou eu, com poucos cliques. Você não faz por mim: não clique em "Autorizar", não peça senha e não peça nem leia o código de autorização, que é secreto.
 
-A tela do Paperclip está em inglês: cite os botões com o nome em inglês e diga o que significam. Um passo por vez, esperando eu dizer "pronto":
+As telas deste passo estão em português, porque a interface traduzida foi instalada na etapa 3.3. O idioma segue o do navegador. Se aparecer em inglês, peça para eu abrir o menu da conta (canto de baixo à esquerda) e escolher **Português (Brasil)**, ou use os nomes em inglês entre parênteses abaixo. O restante do Paperclip pode ter partes em inglês. Um passo por vez, esperando eu dizer "pronto":
 
 1. "Abra http://127.0.0.1:3100/<PREFIXO>/agents/all. É a lista dos agentes. Confira que o endereço começa com **127.0.0.1:3100**. Se você tiver outra aba do Paperclip aberta em outro endereço (por exemplo, 3101), feche: ela é de uma instalação antiga. No dia a dia, abra sempre pelo ícone **Paperclip** da Área de Trabalho."
-2. "Marque a **caixinha do topo da lista**, ao lado de **Agent**, para selecionar todos. Embaixo aparece **Edit connection & model** (editar conexão e modelo): clique."
-3. "Abre a janela **Connect account** (conectar conta). Clique no quadro **Claude – Subscription** (assinatura) e depois no link para entrar no Claude. Vai abrir uma página da Anthropic, a empresa do Claude."
+2. "Marque a **caixinha do topo da lista**, ao lado de **Agente**, para selecionar todos. Embaixo aparece **Editar conexão e modelo** (*Edit connection & model*): clique. Abre a janela **Atualizar N agentes**: marque **Mudar conexão** se ela não estiver marcada."
+3. "Clique em conectar uma conta. Abre a janela **Conectar conta** (*Connect account*). Clique no quadro **Claude**, com **Assinatura** (*Subscription*) embaixo, e depois no link **Entrar em Claude**. Vai abrir uma página da Anthropic, a empresa do Claude."
 4. "Nessa página, entre com a conta da sua assinatura e clique em **Autorizar** (ou **Authorize**). Ela mostra um código: copie. Não precisa me mandar."
-5. "Volte ao Paperclip, cole o código no campo **Paste authorization code here** e, se não andar sozinho, clique em **Submit code**. Depois clique em **Connect** e, por fim, em **Update N agents** (atualizar os agentes; N é o número de agentes do modelo)."
+5. "Volte ao Paperclip, cole o código no campo **Cole aqui o código de autorização** e, se não andar sozinho, clique em **Enviar código** (*Submit code*). Depois clique em **Conectar** (*Connect*) e, por fim, em **Atualizar N agentes** (*Update N agents*; N é o número de agentes do modelo)."
 
-Se aparecer **Sign-in ended before the account was connected**, **This sign-in expired** ou **Sign-in didn't finish**, peça para clicar em **Start sign-in again** ou **Retry sign-in** e refazer os passos 3 a 5. Se ficar parado em **Preparing browser sign-in...** ou ainda falhar, rode como `paperclip` (com os `export` do 3.3): `command -v python3; command -v claude; claude --version`. O login precisa dos dois, e o `claude` tem de estar em `/usr/bin` na versão **2.1.291**. Se a versão for outra, repita a etapa 3.2 e depois `systemctl --user restart paperclipai.service`. Se a tela disser **Failed to fetch** ou **Connection interrupted**, confira o endereço (deve ser a porta 3100) antes de qualquer outra coisa. Se algum botão não existir, me peça um print.
+Se aparecer **Este login expirou**, **O login não terminou** ou **Sign-in ended before the account was connected** (algumas mensagens vêm do servidor e continuam em inglês), peça para clicar em **Começar o login de novo** ou **Refazer login** e refazer os passos 3 a 5. Se ficar parado em **Preparando o login pelo navegador…** (*Preparing browser sign-in...*) ou ainda falhar, rode como `paperclip` (com os `export` do 3.3): `command -v python3; command -v claude; claude --version`. O login precisa dos dois, e o `claude` tem de estar em `/usr/bin` na versão **2.1.291**. Se a versão for outra, repita a etapa 3.2 e depois `systemctl --user restart paperclipai.service`. Se a tela disser **Failed to fetch** ou **Connection interrupted**, confira o endereço (deve ser a porta 3100) antes de qualquer outra coisa. Se algum botão não existir, me peça um print.
 
-Por fim, lembre que os agentes vêm **pausados**: eles só começam a trabalhar quando eu clicar em **Resume all** (retomar todos) no painel do Paperclip.
+Por fim, lembre que os agentes vêm **pausados**: eles só começam a trabalhar quando eu clicar em **Retomar todos** (*Resume all*) no aviso do **Painel** do Paperclip.
 
 ## 6. Se der erro
 
