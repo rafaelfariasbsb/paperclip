@@ -156,7 +156,36 @@
       "healthUnavailable": "Health unavailable",
       "loading": "Loading..."
     },
-    "newTaskSentence": "New task"
+    "newTaskSentence": "New task",
+    "coordinator": {
+      "search": "Search",
+      "projects": "Projects",
+      "artifacts": "Artifacts",
+      "agents": "Agents",
+      "skills": "Skills",
+      "connectors": "Connectors",
+      "audit": "Audit",
+      "settings": "Settings",
+      "cases": "Cases",
+      "expandProject": "Expand {{name}}",
+      "collapseProject": "Collapse {{name}}",
+      "loadingTasks": "Loading tasks…",
+      "tasksError": "Couldn’t load tasks.",
+      "noTasks": "No tasks yet.",
+      "recents": "Recents",
+      "newTask": "New task",
+      "globalSearch": "Global search",
+      "searchHint": "Search tasks, agents, projects",
+      "workspaceNav": "Workspace navigation",
+      "chat": "Chat",
+      "unreadChats": "unread chats",
+      "decisions": "decisions",
+      "more": "More",
+      "morePages": "More workspace pages",
+      "pin": "Pin {{label}}",
+      "unpin": "Unpin {{label}}",
+      "pinned": "Pinned"
+    }
   },
   "dashboard": {
     "empty": {

@@ -156,7 +156,36 @@
       "healthUnavailable": "Status de saúde indisponível",
       "loading": "Carregando..."
     },
-    "newTaskSentence": "Nova tarefa"
+    "newTaskSentence": "Nova tarefa",
+    "coordinator": {
+      "search": "Buscar",
+      "projects": "Projetos",
+      "artifacts": "Artefatos",
+      "agents": "Agentes",
+      "skills": "Skills",
+      "connectors": "Conectores",
+      "audit": "Auditoria",
+      "settings": "Configurações",
+      "cases": "Casos",
+      "expandProject": "Expandir {{name}}",
+      "collapseProject": "Recolher {{name}}",
+      "loadingTasks": "Carregando tarefas…",
+      "tasksError": "Não foi possível carregar as tarefas.",
+      "noTasks": "Nenhuma tarefa ainda.",
+      "recents": "Recentes",
+      "newTask": "Nova tarefa",
+      "globalSearch": "Busca geral",
+      "searchHint": "Buscar tarefas, agentes, projetos",
+      "workspaceNav": "Navegação do workspace",
+      "chat": "Conversas",
+      "unreadChats": "conversas não lidas",
+      "decisions": "decisões",
+      "more": "Mais",
+      "morePages": "Mais páginas do workspace",
+      "pin": "Fixar {{label}}",
+      "unpin": "Desafixar {{label}}",
+      "pinned": "Fixados"
+    }
   },
   "dashboard": {
     "empty": {
