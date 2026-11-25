@@ -11,12 +11,11 @@ Use exatamente as versões deste roteiro: **Paperclip 2026.1117.0**, **Node 24**
 
 ## 2. Primeira mensagem (modo A)
 
-Me pergunte: "Qual modelo de empresa você quer instalar?
-1. **Farmácia** – retaguarda de drogaria
-2. **Condomínio** – apoio ao síndico
-Se você comprou, me mande a **chave** (ela já diz qual é o modelo) e o **nome da sua empresa ou do condomínio**. Para só testar, responda **DEMO FARMÁCIA** ou **DEMO CONDOMÍNIO**. Se não quiser nenhum modelo agora, responda NÃO."
+Antes de perguntar, leia o catálogo de modelos com a ferramenta PowerShell: `Invoke-RestMethod https://expedienteai.com/modelos/catalogo.json`. Ele lista, para cada modelo: `prefixo`, `nome`, `ramo`, `palavras` (como as pessoas chamam o ramo), `nomePadrao`, `zip`, `sha256`, `dados`, `variavel`, `agentes` e `entrada` (que planilhas vão na pasta).
 
-O modelo sai da chave pelo prefixo (`FARM-` farmácia, `COND-` condomínio) ou da palavra depois de DEMO. Se eu responder só "DEMO" ou só o número, pergunte o que faltar. Os modelos estão no **catálogo** da etapa 3.5.
+Me pergunte: "Qual modelo de empresa você quer instalar? Se você comprou, me mande a **chave** (ela já diz qual é o modelo) e o **nome da sua empresa**. Para só testar, responda **DEMO** e o seu ramo, por exemplo **DEMO FARMÁCIA** ou **DEMO OFICINA**. Se não quiser nenhum modelo agora, responda NÃO."
+
+O modelo sai da chave pelo prefixo (as 4 letras antes do primeiro hífen, que são o `prefixo` do catálogo) ou do ramo depois de DEMO, comparado com `nome`, `ramo` e `palavras` do catálogo, sem acento e sem diferença de maiúsculas. Se o ramo combinar com mais de um modelo, ou com nenhum, mostre as opções mais próximas e pergunte. Se eu responder só "DEMO", pergunte o ramo. Se eu pedir a lista, mostre os nomes do catálogo agrupados por `ramo`.
 
 Depois explique, com as suas palavras, em no máximo cinco linhas curtas:
 - Vou ligar o "Linux do Windows" (WSL), instalar o Paperclip dentro dele e deixar um ícone na Área de Trabalho. Ele roda só neste computador e abre no navegador.
@@ -24,7 +23,7 @@ Depois explique, com as suas palavras, em no máximo cinco linhas curtas:
 - O aplicativo vai me pedir permissão para rodar comandos: pode permitir.
 - Não vou pedir senhas nem mexer nos seus arquivos.
 
-Espere a resposta e comece. Guarde a chave e não a repita em outras mensagens. Se eu disser DEMO, o nome da empresa é o que eu der (ou o nome padrão do catálogo) seguido de " (DEMONSTRACAO)".
+Espere a resposta e comece. Guarde a chave e não a repita em outras mensagens. Se eu disser DEMO, o nome da empresa é o que eu der (ou o `nomePadrao` do catálogo) seguido de " (DEMONSTRACAO)".
 
 ## 3. Instalação (modo A)
 
@@ -155,39 +154,28 @@ Se der `AINDA NAO`, rode como `paperclip` (com as mesmas linhas `export` do 3.3)
 
 Pule esta etapa se eu disse NÃO. A validação da chave ainda é de teste: qualquer chave no formato `PREFIXO-XXXX-XXXX-X`, com um prefixo do catálogo, serve. Prefixo desconhecido: diga que a chave não é de nenhum modelo disponível e pergunte de novo.
 
-**Catálogo de modelos**
-
-| Prefixo | Modelo | Nome padrão (DEMO) | Pasta no Windows | Variável |
-|---|---|---|---|---|
-| `FARM` | Farmácia – Retaguarda com IA v1.0.0 | Minha Farmácia | `C:\FarmaciaDados` | `FARMACIA_DADOS` |
-| `COND` | Condomínio – Gestão com IA v1.2.0 | Meu Condomínio | `C:\CondominioDados` | `CONDOMINIO_DADOS` |
-
 ```powershell
-$modelo = 'FARM'           # FARM ou COND, pela chave ou pela resposta DEMO
-$demo   = $true            # $false se eu mandei uma chave
-$nome   = '<EMPRESA>'      # ja com " (DEMONSTRACAO)" se for DEMO; sem apostrofos
-$base = 'https://raw.githubusercontent.com/rafaelfariasbsb/paperclip/windows-installer/templates'
-$catalogo = @{
-  FARM = @{ Zip = "$base/farmacia-retaguarda-v1.0.0.zip"; Sha = 'C752AF83D3E26A2B8384D31AB7047AB14DD4AB31860FB00C3E952734F1B5EBE6'
-            Dados = 'C:\FarmaciaDados'; Var = 'FARMACIA_DADOS'; Agentes = 8 }
-  COND = @{ Zip = "$base/condominio-gestao-v1.2.0.zip"; Sha = 'EE896B05287A03680A691CBEC7B691E41D3A97898383904D5652D3FFDCC5D26D'
-            Dados = 'C:\CondominioDados'; Var = 'CONDOMINIO_DADOS'; Agentes = 9 }
-}
-$m = $catalogo[$modelo]; if (-not $m) { throw "Modelo desconhecido: $modelo" }
+$prefixo = 'FARM'          # prefixo do catalogo, pela chave ou pela resposta DEMO
+$demo    = $true           # $false se eu mandei uma chave
+$nome    = '<EMPRESA>'     # ja com " (DEMONSTRACAO)" se for DEMO; sem apostrofos
+$base = 'https://expedienteai.com/modelos'
+$cat = Invoke-RestMethod "$base/catalogo.json"
+$m = @($cat.modelos | Where-Object { $_.prefixo -eq $prefixo })[0]
+if (-not $m) { throw "Modelo desconhecido: $prefixo" }
 $tmp = Join-Path $env:TEMP 'paperclip-modelo'
 if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 $zip = Join-Path $tmp 'modelo.zip'
-Invoke-WebRequest $m.Zip -OutFile $zip -UseBasicParsing
-if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $m.Sha) { throw 'Modelo corrompido' }
-$dados = $m.Dados
+Invoke-WebRequest "$base/$($m.zip)" -OutFile $zip -UseBasicParsing
+if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $m.sha256.ToUpper()) { throw 'Modelo corrompido' }
+$dados = $m.dados
 New-Item -ItemType Directory -Force -Path "$dados\entrada", "$dados\saida" | Out-Null
 if ($demo) {
   Add-Type -AssemblyName System.IO.Compression.FileSystem
   [IO.Compression.ZipFile]::ExtractToDirectory($zip, "$tmp\ex")
   Get-ChildItem "$tmp\ex" -Recurse -Filter *.csv | Where-Object { $_.DirectoryName -like '*dados-exemplo*' } | Copy-Item -Destination "$dados\entrada" -Force
 }
-$var = $m.Var; $dadosLinux = '/mnt/c/' + (Split-Path $dados -Leaf)
+$var = $m.variavel; $dadosLinux = '/mnt/c/' + (Split-Path $dados -Leaf)
 $meta = @{ include = @{ company = $true; agents = $true; skills = $true; issues = $true; projects = $false }
   target = @{ mode = 'new_company'; newCompanyName = $nome }; collisionStrategy = 'rename'; pauseAutomations = $true
   secretValues = @{ $var = $dadosLinux } } | ConvertTo-Json -Depth 5 -Compress
@@ -195,17 +183,17 @@ $meta = @{ include = @{ company = $true; agents = $true; skills = $true; issues 
 $cod = & "$env:SystemRoot\System32\curl.exe" -s -o "$tmp\resp.json" -w '%{http_code}' -X POST http://127.0.0.1:3100/api/companies/import -F "package=@$zip;type=application/zip" -F "meta=<$tmp\meta.json"
 $r = Get-Content "$tmp\resp.json" -Raw -Encoding UTF8 | ConvertFrom-Json
 $pref = (Invoke-RestMethod "http://127.0.0.1:3100/api/companies/$($r.company.id)").issuePrefix
-"HTTP $cod - agentes: $(@($r.agents).Count) de $($m.Agentes) - prefixo: $pref"
+"HTTP $cod - agentes: $(@($r.agents).Count) de $($m.agentes) - prefixo: $pref"
 Remove-Item $tmp -Recurse -Force
 ```
 
-Espere `HTTP 200` e o número de agentes do catálogo. Guarde o prefixo (ex.: `MIN`): ele entra no endereço da seção 5. A pasta do modelo (`C:\FarmaciaDados` ou `C:\CondominioDados`) é a mesma que o Linux enxerga em `/mnt/c/...`: é nela que vão as planilhas e exportações do sistema. Para instalar **outro modelo** depois, mande o mesmo link de novo e responda com a outra chave ou DEMO: as etapas 3.1 a 3.4 já estarão feitas e só a 3.5 roda.
+Espere `HTTP 200` e o número de agentes do catálogo. Guarde o prefixo (ex.: `MIN`): ele entra no endereço da seção 5. A pasta do modelo (o campo `dados` do catálogo, por exemplo `C:\FarmaciaDados`) é a mesma que o Linux enxerga em `/mnt/c/...`: é nela que vão as planilhas e exportações do sistema. Para instalar **outro modelo** depois, mande o mesmo link de novo (`siga https://expedienteai.com/instalar.md`) e responda com a outra chave ou DEMO: as etapas 3.1 a 3.4 já estarão feitas e só a 3.5 roda.
 
 ## 4. Quando terminar, me diga em linguagem simples
 
 - que deu certo e o Paperclip abre pelo ícone **Paperclip** na Área de Trabalho (ou em http://127.0.0.1:3100);
 - que ele liga sozinho com o computador e que aparece uma janelinha minimizada do Linux na barra de tarefas: **não feche essa janela**, ela mantém o Paperclip ligado;
-- se instalei o modelo, qual foi e em que pasta vão as planilhas: `C:\FarmaciaDados\entrada` (farmácia: exportações do sistema da loja) ou `C:\CondominioDados\entrada` (condomínio: relatórios da administradora e extrato do banco em OFX);
+- se instalei o modelo, qual foi e em que pasta vão as planilhas: a pasta `entrada` dentro do campo `dados` do catálogo, com o que diz o campo `entrada` (por exemplo, `C:\FarmaciaDados\entrada`: exportações do sistema da loja);
 - que o primeiro agente a ativar é o **Implantação**, que faz as perguntas de configuração.
 
 ## 5. Último passo: conectar a assinatura do Claude
