@@ -94,6 +94,8 @@ Antes, confira que a porta 3100 está livre no Windows: `netstat -ano | findstr 
 
 ```bash
 set -e
+# umask 002 faz o pacote oficial recusar o executavel do Copilot e a instalacao falhar sem erro (paperclipai/paperclip#20024)
+umask 022
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
@@ -226,6 +228,7 @@ Por fim, lembre que os agentes vêm **pausados**: eles só começam a trabalhar 
 
 - **Linux**: rode como `paperclip` (com os `export` do 3.3) `paperclipai doctor` e `paperclipai service logs`, e leia antes de me pedir print.
 - **Porta 3100 ocupada**: pode ser uma instalação antiga do Paperclip direto no Windows. Procure `%LOCALAPPDATA%\Paperclip` ou `C:\Paperclip`. Se existir, me pergunte antes de mexer. Com o meu OK, pare essa instalação com o `Parar-Paperclip.ps1 -Silencioso` que fica nessa pasta, apague os atalhos dela (`Paperclip.lnk` na Área de Trabalho e na Inicialização, `Parar Paperclip.lnk`) e depois a pasta. Por fim, rode `systemctl --user restart paperclipai.service` como `paperclip` e confira que ele voltou para a 3100.
+- **Instalação do Paperclip sai com erro sem mensagem** (só o aviso do `uuid`): é o problema de permissão do pacote oficial (paperclipai/paperclip#20024). Confira que a etapa 3.3 rodou com `umask 022` e repita.
 - **Versões erradas**: `node --version` tem de ser 24 ou mais, e `claude --version` tem de ser 2.1.291. Se não forem, repita a etapa 3.2.
 - **Internet**: rode a etapa de novo.
 - Para começar do zero (só com o meu OK, porque apaga tudo o que está no Linux): `wsl.exe --unregister Ubuntu` e apague os atalhos `Paperclip.url` (Área de Trabalho) e `Paperclip (WSL).lnk` (Inicialização). Só faça isso se o Ubuntu foi criado por esta instalação.
